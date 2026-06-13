@@ -1,57 +1,55 @@
 import requests
 from datetime import date
 
-def fetch_weather_report(location="Thiruvananthapuram"):
-    """Queries wttr.in to extract a clean weather text summary."""
-    endpoint_url = f"https://wttr.in/{location}?format=3"
+def get_weather(city="Thiruvananthapuram"):
+    url = f"https://wttr.in/{city}?format=3"
     try:
-        api_response = requests.get(endpoint_url, timeout=12)
-        api_response.raise_for_status()
-        return api_response.text.strip()
-    except Exception as error:
-        return f"Weather data tracking offline: {error}"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        return response.text.strip()
+    except Exception as e:
+        return f"Weather unavailable ({e})"
 
-def fetch_motivational_quote():
-    """Pulls a randomized daily motivational quote from ZenQuotes."""
-    endpoint_url = "https://zenquotes.io/api/random"
+def get_quote():
+    url = "https://zenquotes.io/api/random"
     try:
-        api_response = requests.get(endpoint_url, timeout=12)
-        api_response.raise_for_status()
-        json_payload = api_response.json()
-        quote_text = json_payload[0]['q']
-        quote_author = json_payload[0]['a']
-        return f'"{quote_text}" — {quote_author}'
-    except Exception as error:
-        return f"Inspirational content sync failed: {error}"
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        quote = data[0]['q']
+        author = data[0]['a']
+        return f'"{quote}" - {author}'
+    except Exception as e:
+        return f"Quote unavailable ({e})"
 
-def compile_daily_feed():
-    """Gathers parameters and formats them into the structured layout."""
-    calendar_today = date.today().strftime("%A, %d %b %Y")
-    current_weather = fetch_weather_report()
-    selected_quote = fetch_motivational_quote()
+def build_summary():
+    today = date.today().strftime("%A, %d %b %Y")
+    weather = get_weather()
+    quote = get_quote()
     
-    output_feed = (
-        f"==================================================\n"
-        f"PULSE ENGINE — CORE DAILY FEED\n"
-        f"Generated on: {calendar_today}\n"
-        f"==================================================\n\n"
-        f"LOCAL METRICS:\n"
-        f"↳ {current_weather}\n\n"
-        f"TODAY'S INSPIRATION:\n"
-        f"↳ {selected_quote}\n\n"
-        f"--------------------------------------------------"
-    )
-    return output_feed
+    # Matches the guide template spacing and text perfectly
+    summary = f"""=====================================
+PULSE - Daily Summary
+{today}
+=====================================
 
-def main_execution_loop():
-    """Primary routine handled by the GitHub actions environment."""
-    compiled_data = compile_daily_feed()
-    print(compiled_data)
+WEATHER
+{weather}
+
+TODAY'S QUOTE
+{quote}
+
+-------------------------------------"""
+    return summary
+
+def run():
+    summary = build_summary()
+    print(summary)
     
-    target_filename = "daily_summary.txt"
-    with open(target_filename, "w", encoding="utf-8") as target_file:
-        target_file.write(compiled_data)
-    print(f"\n[Success] Manifest exported to {target_filename}.")
+    # Saves exactly as daily_summary.txt as requested
+    with open("daily_summary.txt", "w", encoding="utf-8") as f:
+        f.write(summary)
+    print("Pulse ran successfully.")
 
 if __name__ == "__main__":
-    main_execution_loop()
+    run()
